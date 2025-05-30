@@ -1,186 +1,153 @@
-// screens/add_vehicle_screen.dart
+// screens/vehicle_details_screen.dart
 import 'package:flutter/material.dart';
 import '../models/vehicle_model.dart';
-import '../services/auth_service.dart';
-import '../services/vehicle_service.dart';
+import '../models/maintenance_record_model.dart';
+import '../services/maintenance_service.dart';
+import 'add_maintenance_record_screen.dart';
 
-class AddVehicleScreen extends StatefulWidget {
-  const AddVehicleScreen({Key? key}) : super(key: key);
+class VehicleDetailsScreen extends StatefulWidget {
+  final Vehicle vehicle;
+
+  const VehicleDetailsScreen({Key? key, required this.vehicle}) : super(key: key);
 
   @override
-  State<AddVehicleScreen> createState() => _AddVehicleScreenState();
+  State<VehicleDetailsScreen> createState() => _VehicleDetailsScreenState();
 }
 
-class _AddVehicleScreenState extends State<AddVehicleScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _makeController = TextEditingController();
-  final TextEditingController _modelController = TextEditingController();
-  final TextEditingController _yearController = TextEditingController();
-  final TextEditingController _licensePlateController = TextEditingController();
-  final TextEditingController _mileageController = TextEditingController(); // New controller for mileage
-
-  final VehicleService _vehicleService = VehicleService();
-  final AuthService _authService = AuthService();
-  bool _isLoading = false;
-
-  @override
-  void dispose() {
-    _makeController.dispose();
-    _modelController.dispose();
-    _yearController.dispose();
-    _licensePlateController.dispose();
-    _mileageController.dispose(); // Dispose mileage controller
-    super.dispose();
-  }
-
-  Future<void> _submitForm() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
-
-      try {
-        final userId = _authService.currentUser?.uid;
-        if (userId == null) {
-          throw Exception('User not authenticated');
-        }
-
-        final vehicle = Vehicle(
-          id: '', // This will be set by Firebase
-          make: _makeController.text.trim(),
-          model: _modelController.text.trim(),
-          year: _yearController.text.trim(),
-          licensePlate: _licensePlateController.text.trim(),
-          userId: userId,
-          mileage: int.tryParse(_mileageController.text.trim()) ?? 0, // Parse mileage from controller
-        );
-
-        await _vehicleService.addVehicle(vehicle);
-
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Vehicle Registered Successfully')),
-        );
-        Navigator.pop(context);
-      } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
-      }
-    }
-  }
+class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
+  final MaintenanceService _maintenanceService = MaintenanceService();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add New Vehicle'),
+        title: Text('${widget.vehicle.make} ${widget.vehicle.model} Details'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              TextFormField(
-                controller: _makeController,
-                decoration: const InputDecoration(
-                  labelText: 'Make',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter the vehicle make';
-                  }
-                  return null;
-                },
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Vehicle info card
+          Card(
+            margin: const EdgeInsets.all(16.0),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${widget.vehicle.make} ${widget.vehicle.model} (${widget.vehicle.year})',
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text('License Plate: ${widget.vehicle.licensePlate}'),
+                  Text('Current Mileage: ${widget.vehicle.mileage} km'),
+                ],
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _modelController,
-                decoration: const InputDecoration(
-                  labelText: 'Model',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter the vehicle model';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _yearController,
-                decoration: const InputDecoration(
-                  labelText: 'Year',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter the vehicle year';
-                  }
-                  if (int.tryParse(value) == null) {
-                    return 'Please enter a valid year';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _licensePlateController,
-                decoration: const InputDecoration(
-                  labelText: 'License Plate',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter the license plate number';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              // New field for mileage
-              TextFormField(
-                controller: _mileageController,
-                decoration: const InputDecoration(
-                  labelText: 'Current Mileage (km)',
-                  border: OutlineInputBorder(),
-                  hintText: 'e.g., 15000',
-                ),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter the current mileage';
-                  }
-                  if (int.tryParse(value) == null) {
-                    return 'Please enter a valid number';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _submitForm,
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Register Vehicle', style: TextStyle(fontSize: 16)),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+
+          // Maintenance records header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Maintenance Records',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                TextButton.icon(
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add New'),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AddMaintenanceRecordScreen(
+                          vehicleId: widget.vehicle.id,
+                          currentMileage: widget.vehicle.mileage, // Pass the current mileage
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          // Maintenance records list
+          Expanded(
+            child: StreamBuilder<List<MaintenanceRecord>>(
+              stream: _maintenanceService.getMaintenanceRecords(widget.vehicle.id),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+
+                final records = snapshot.data ?? [];
+
+                if (records.isEmpty) {
+                  return const Center(
+                    child: Text('No maintenance records found'),
+                  );
+                }
+
+                return ListView.builder(
+                  itemCount: records.length,
+                  padding: const EdgeInsets.all(16.0),
+                  itemBuilder: (context, index) {
+                    final record = records[index];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12.0),
+                      child: ListTile(
+                        title: Text(
+                          record.type,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Date: ${record.date}'),
+                            Text('Mileage: ${record.mileage} km'),
+                            if (record.notes.isNotEmpty) Text('Notes: ${record.notes}'),
+                          ],
+                        ),
+                        isThreeLine: true,
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete),
+                          onPressed: () async {
+                            await _maintenanceService.deleteMaintenanceRecord(record.id);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Record deleted')),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AddMaintenanceRecordScreen(
+                vehicleId: widget.vehicle.id,
+                currentMileage: widget.vehicle.mileage, // Pass the current mileage
+              ),
+            ),
+          );
+        },
+        child: const Icon(Icons.add),
+        tooltip: 'Add Maintenance Record',
       ),
     );
   }
