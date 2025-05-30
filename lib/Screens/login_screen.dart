@@ -1,40 +1,30 @@
-// screens/signup_screen.dart
+// screens/login_screen.dart
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
 import 'home_screen.dart';
+import 'signup_screen.dart';
 
-class SignupScreen extends StatefulWidget {
-  const SignupScreen({Key? key}) : super(key: key);
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({Key? key}) : super(key: key);
 
   @override
-  State<SignupScreen> createState() => _SignupScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _SignupScreenState extends State<SignupScreen> {
+class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
   final AuthService _authService = AuthService();
   bool _isLoading = false;
 
   @override
   void dispose() {
-    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-    _confirmPasswordController.dispose();
     super.dispose();
-  }
-
-  String? _validateName(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter your name';
-    }
-    return null;
   }
 
   String? _validateEmail(String? value) {
@@ -52,29 +42,18 @@ class _SignupScreenState extends State<SignupScreen> {
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) {
       return 'Please enter your password';
-    } else if (value.length < 6) {
-      return 'Password must be at least 6 characters';
     }
     return null;
   }
 
-  String? _validateConfirmPassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please confirm your password';
-    } else if (value != _passwordController.text) {
-      return 'Passwords do not match';
-    }
-    return null;
-  }
-
-  Future<void> _signUp() async {
+  Future<void> _signIn() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
       });
 
       try {
-        await _authService.createUserWithEmailAndPassword(
+        await _authService.signInWithEmailAndPassword(
           _emailController.text.trim(),
           _passwordController.text,
         );
@@ -101,10 +80,6 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Sign Up'),
-        elevation: 0,
-      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
@@ -117,19 +92,21 @@ class _SignupScreenState extends State<SignupScreen> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const Text(
-                      'Create Account',
+                      'Welcome Back',
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 40),
-                    CustomTextField(
-                      controller: _nameController,
-                      hintText: 'Full Name',
-                      validator: _validateName,
-                      prefixIcon: Icons.person,
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Sign in to continue',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey,
+                      ),
                     ),
+                    const SizedBox(height: 40),
                     CustomTextField(
                       controller: _emailController,
                       hintText: 'Email',
@@ -144,18 +121,29 @@ class _SignupScreenState extends State<SignupScreen> {
                       validator: _validatePassword,
                       prefixIcon: Icons.lock,
                     ),
-                    CustomTextField(
-                      controller: _confirmPasswordController,
-                      hintText: 'Confirm Password',
-                      obscureText: true,
-                      validator: _validateConfirmPassword,
-                      prefixIcon: Icons.lock,
-                    ),
                     const SizedBox(height: 20),
                     CustomButton(
-                      text: 'Sign Up',
-                      onPressed: _signUp,
+                      text: 'Sign In',
+                      onPressed: _signIn,
                       isLoading: _isLoading,
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text("Don't have an account?"),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const SignupScreen(),
+                              ),
+                            );
+                          },
+                          child: const Text('Sign Up'),
+                        ),
+                      ],
                     ),
                   ],
                 ),
